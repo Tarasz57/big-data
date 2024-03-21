@@ -1,6 +1,9 @@
 from PIL import Image, ImageFilter 
 from skimage.util import random_noise, img_as_float
 import numpy as np
+import multiprocessing as mp
+from os import listdir
+import time
 
 def apply_blur(image):
   return image.filter(ImageFilter.GaussianBlur)
@@ -19,9 +22,25 @@ def apply_noise(image: Image.Image, noise_pxl_count: float):
   noised_image = random_noise(img_as_float(image), mode='s&p', amount=noise_pxl_count)
   return Image.fromarray((noised_image * 255).astype(np.uint8))
 
-if __name__ == '__main__':
-  image = Image.open(r"Images/667626_18933d713e.jpg") 
+def process_image(image_path: str):
+  print("Processing image: " + image_path)
+  image = Image.open("Images/" + image_path)
   blacked_image, noise_pxl_count = apply_black_and_white(image)
-  blacked_image.save("blacked_image.jpg")
-  noised_image = apply_noise(image, noise_pxl_count)
-  noised_image.save("noised_image.jpg")
+  blacked_image.save("blacked/" + image_path)
+  apply_noise(image, noise_pxl_count).save("noised/" + image_path)
+  apply_blur(image).save("blurred/" + image_path)
+
+if __name__ == '__main__':
+  start = time.perf_counter()
+  pool = mp.Pool(mp.cpu_count())
+
+  file_path = "Images/"
+  pool.map(process_image, [f for f in listdir(file_path)])
+
+  pool.close()
+  pool.join()
+
+# TODO - Add time measurement for each processing function individually
+  
+  print("Finished in: " + str(time.perf_counter() - start) + " seconds")
+  
