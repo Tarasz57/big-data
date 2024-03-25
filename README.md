@@ -8,4 +8,4 @@ Before starting the script you must do the following:
 - Unzip it: `unzip data_set_VU_test1.zip`
 - Create 3 folders for processed image saving: `mkdir blacked && mkdir blurred && mkdir noised`
 
-Run the script with `python image.py`
+Run the script with `python final.py`
