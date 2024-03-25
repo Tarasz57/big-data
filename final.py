@@ -1,7 +1,8 @@
 # Import necessary libraries
 import os
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+from skimage.util import random_noise, img_as_float
 from time import perf_counter
 import matplotlib.pyplot as plt
 from PIL import Image, ImageFilter  # Importing image-related modules from the Python Imaging Library (PIL)
@@ -22,7 +23,7 @@ def convert_image_BW(name):
     # Convert the NumPy array back to an image
     imgBW = Image.fromarray(imgBW) 
     # Save the black and white image
-    imgBW.save(f"Bw/{name}")
+    imgBW.save(f"blacked/{name}")
 
 # Function to apply blur to an image
 def Blur_image(name):
@@ -31,31 +32,24 @@ def Blur_image(name):
     # Apply blur filter to the image
     img = img.filter(ImageFilter.BLUR) 
     # Save the blurred image. Adjust folder name if needed.
-    img.save(f"Blur/{name}")
+    img.save(f"blurred/{name}")
 
 # Function to add noise to a black and white image
 def Add_noise_BW(name): 
     # Open the black and white image file
-    imgBWN = Image.open(f"Bw/{name}") 
-    # Convert the image to a NumPy array
+    imgBWN = Image.open(f"blacked/{name}") 
+    # Open the original
+    imgOriginal = Image.open(f"Images/{name}")
+    # Convert the black one to a NumPy array
     imgBWN = np.array(imgBWN) 
-    # Count the number of black pixels
-    black_pixels = np.sum(imgBWN == 0)
     # Calculate the number of noisy pixels to be added
-    noisy_pixels = int(black_pixels * 0.1) 
-    # Get the coordinates of black pixels
-    black_pixels_coords = np.argwhere(imgBWN == 0)
-    # Shuffle the coordinates randomly
-    np.random.shuffle(black_pixels_coords)
-    # Select a subset of coordinates for adding noise
-    noisy_coords = black_pixels_coords[:noisy_pixels]
-    # Add noise to the selected coordinates
-    for coord in noisy_coords:
-        imgBWN[coord[0], coord[1]] = 255 
+    noisy_pixels = np.sum(imgBWN == 0) / np.size(imgBWN) * 0.1
+    # Add salt and pepper noise to the image
+    noise = random_noise(img_as_float(imgOriginal), mode='s&p', amount=noisy_pixels)
     # Convert the NumPy array back to an image
-    noisy_img = Image.fromarray(imgBWN)
+    noisy_img = Image.fromarray((noise * 255).astype(np.uint8))
     # Save the noisy image. Adjust folder name if needed
-    noisy_img.save(f"Bwn/{name}")
+    noisy_img.save(f"noised/{name}")
 
 # Function to process a chunk of images using multiprocessing
 def process_chunk(chunk, task_functions):
@@ -65,7 +59,7 @@ def process_chunk(chunk, task_functions):
             executor.map(task_function, chunk)
 
 # Main function for parallelized image processing
-def parallelized_conversion(filenames, n_splits, n_cpus):
+def parallelized_conversion(filenames, n_splits):
     # Print a message indicating the start of image processing
     print("Starting run.")
     # Record the start time
@@ -95,7 +89,7 @@ if __name__ == '__main__':
         # Record the start time
         start_time = perf_counter()
         # Perform parallelized image processing with the current number of CPUs
-        parallelized_conversion(filenames, c, c)
+        parallelized_conversion(filenames, c)
         # Calculate the total processing time
         timings[c] = perf_counter() - start_time
     
