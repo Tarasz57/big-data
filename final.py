@@ -1,4 +1,5 @@
 # Import necessary libraries
+#%%
 import os
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor
@@ -51,12 +52,11 @@ def Add_noise_BW(name):
     # Save the noisy image. Adjust folder name if needed
     noisy_img.save(f"noised/{name}")
 
-# Function to process a chunk of images using multiprocessing
-def process_chunk(chunk, task_functions):
-    # Process each image in the chunk using multiprocessing
-    with ProcessPoolExecutor() as executor:
-        for task_function in task_functions:
-            executor.map(task_function, chunk)
+# Function to process images using multiprocessing
+def process_chunk(chunk):
+    convert_image_BW(chunk)
+    Blur_image(chunk)
+    Add_noise_BW(chunk)
 
 # Main function for parallelized image processing
 def parallelized_conversion(filenames, n_splits):
@@ -64,12 +64,9 @@ def parallelized_conversion(filenames, n_splits):
     print("Starting run.")
     # Record the start time
     start_time = perf_counter()
-    # Split the list of filenames into chunks
-    chunks = np.array_split(filenames, n_splits)
-    # Process each chunk of filenames
-    for chunk in chunks:
-        # Process the chunk using multiprocessing
-        process_chunk(chunk, [convert_image_BW, Blur_image, Add_noise_BW])
+    # Process filenames
+    with ProcessPoolExecutor(max_workers=n_splits) as executor:
+        executor.map(process_chunk, filenames)
     # Calculate the total processing time
     timing = perf_counter() - start_time
     # Print a message indicating the completion of image processing and the total time taken
@@ -86,6 +83,7 @@ if __name__ == '__main__':
 
     # Iterate over different numbers of CPUs
     for c in range(1, cpus_max + 1):
+        print(f"Using {c} CPUs")
         # Record the start time
         start_time = perf_counter()
         # Perform parallelized image processing with the current number of CPUs
@@ -99,3 +97,5 @@ if __name__ == '__main__':
     plt.ylabel('Processing time (seconds)')
     plt.xlabel('Number of CPUs')
     plt.show() 
+
+# %%
